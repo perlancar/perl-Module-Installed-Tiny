@@ -3,7 +3,13 @@ package Module::Loadable;
 # DATE
 # VERSION
 
+use strict;
+use warnings;
+
 use Scalar::Util qw(blessed);
+
+use Exporter qw(import);
+our @EXPORT_OK = qw(module_loadable module_source);
 
 our $SEPARATOR;
 BEGIN {
