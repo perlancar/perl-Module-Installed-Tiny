@@ -174,4 +174,8 @@ L<App::FatPacker> or L<Module::FatPack>) or datapacked (see L<Module::DataPack>)
 scripts or generally when there is a hook in C<@INC>. C<Module::Loadable>, on
 the other hand, handles require hook like Perl's C<require()>.
 
+Also, those two modules at the time of this writing currently does not actually
+read the module file. In the case of, say, permission problem, those two will
+still return the path but the module might not actually readable.
+
 =cut
