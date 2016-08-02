@@ -34,7 +34,7 @@ sub _module_source {
             @hook_res = $entry->[0]->($entry, $name_pm);
         } elsif (blessed $entry) {
             $is_hook++;
-            @hook_res = $entry->INC($entry, $name_pm);
+            @hook_res = $entry->INC($name_pm);
         } elsif ($ref eq 'CODE') {
             $is_hook++;
             @hook_res = $entry->($entry, $name_pm);
@@ -50,7 +50,10 @@ sub _module_source {
 
         if ($is_hook) {
             next unless @hook_res;
-            my ($prepend_ref, $fh, $code, $code_state) = @hook_res;
+            my $prepend_ref = shift @hook_res if ref($hook_res[0]) eq 'SCALAR';
+            my $fh          = shift @hook_res if ref($hook_res[0]) eq 'GLOB';
+            my $code        = shift @hook_res if ref($hook_res[0]) eq 'CODE';
+            my $code_state  = shift @hook_res if @hook_res;
             if ($fh) {
                 my $src = "";
                 local $_;
@@ -61,6 +64,7 @@ sub _module_source {
                     }
                     $src .= $_;
                 }
+                $src = $$prepend_ref . $src if $prepend_ref;
                 return $src;
             } elsif ($code) {
                 my $src = "";
@@ -68,6 +72,7 @@ sub _module_source {
                 while ($code->($code, $code_state)) {
                     $src .= $_;
                 }
+                $src = $$prepend_ref . $src if $prepend_ref;
                 return $src;
             }
         }
