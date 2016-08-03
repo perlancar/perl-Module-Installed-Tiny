@@ -1,8 +1,8 @@
-Revision history for Module-Loadable-Tiny
+Revision history for Module-Installed-Tiny
 
 0.002   2016-08-03 (PERLANCAR) (unreleased)
 
-        - Rename dist from Module-Loadable to Module-Loadable-Tiny to
+        - Rename dist from Module-Loadable to Module-Installed-Tiny to
           differentiate with existing solutions.
 
 

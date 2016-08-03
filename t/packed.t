@@ -19,7 +19,7 @@ subtest fatpack => sub {
     my $res = App::depak::depak(
         pack_method => "fatpack",
         include_module => ["Local::Foo", "Local::Bar"],
-        input_file => "$Bin/bin/test-module-loadable.pl",
+        input_file => "$Bin/bin/test-module-installed.pl",
         output_file => $tempname,
         overwrite => 1,
         trace_method => "fatpacker",
@@ -28,7 +28,7 @@ subtest fatpack => sub {
         unless $res->[0] == 200;
 
     my $output = `$^X $tempname`;
-    like($output, qr/l1.*l2.*L3/s);
+    like($output, qr/^installed1.*^installed2.*NOT-INSTALLED3/ms);
 };
 
 subtest datapack => sub {

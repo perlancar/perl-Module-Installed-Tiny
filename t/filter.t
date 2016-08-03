@@ -5,14 +5,14 @@
 use strict;
 use warnings;
 
-use Module::Loadable::Tiny qw(module_source module_loadable);
+use Module::Installed::Tiny qw(module_source module_installed);
 use Test::More 0.98;
 use Test::Needs 'lib::disallow';
 
-subtest module_loadable => sub {
+subtest module_installed => sub {
     require lib::disallow;
     lib::disallow->import("if");
-    ok(!module_loadable("if"), "'if' can't be loaded (filtered)");
+    ok(!module_installed("if"), "'if' not installed (filtered)");
 };
 
 done_testing;

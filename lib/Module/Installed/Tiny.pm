@@ -1,4 +1,4 @@
-package Module::Loadable::Tiny;
+package Module::Installed::Tiny;
 
 # DATE
 # VERSION
@@ -7,7 +7,7 @@ use strict;
 use warnings;
 
 use Exporter qw(import);
-our @EXPORT_OK = qw(module_loadable module_source);
+our @EXPORT_OK = qw(module_installed module_source);
 
 our $SEPARATOR;
 BEGIN {
@@ -93,7 +93,7 @@ sub module_source {
     _module_source $name_pm;
 }
 
-sub module_loadable {
+sub module_installed {
     my $name = shift;
 
     # convert Foo::Bar -> Foo/Bar.pm
@@ -114,16 +114,16 @@ sub module_loadable {
 }
 
 1;
-# ABSTRACT: Check if a module is loadable without actually loading it
+# ABSTRACT: Check if a module is installed, with as little code as possible
 
 =head1 SYNOPSIS
 
- use Module::Loadable::Tiny qw(module_loadable module_source);
+ use Module::Installed::Tiny qw(module_installed module_source);
 
  # check if a module is available
- if (module_loadable "Foo::Bar") {
+ if (module_installed "Foo::Bar") {
      # Foo::Bar is available
- } elsif (module_loadable "Foo/Baz.pm") {
+ } elsif (module_installed "Foo/Baz.pm") {
      # Foo::Baz is available
  }
 
@@ -133,35 +133,36 @@ sub module_loadable {
 
 =head1 DESCRIPTION
 
-To check if a module is loadable (available), generally the simplest way is to
+To check if a module is installed (available), generally the simplest way is to
 try to C<require()> it:
 
  if (eval { require Foo::Bar; 1 }) {
      # Foo::Bar is available
  }
 
-However, this actually loads the module. If a large number of modules need to be
-checked, this can potentially consume a lot of CPU time and memory.
+However, this actually loads the module. There are some cases where this is not
+desirable: 1) we have to check a lot of modules (actually loading the modules
+will take a lot of CPU time and memory; 2) some of the modules conflict with one
+another and cannot all be loaded; 3) the module is OS specific and might not
+load under another OS; 4) we simply do not want to execute the module, for
+security or other reasons.
 
-C<Module::Loadable::Tiny> provides a routine C<module_loadable()> which works
+C<Module::Installed::Tiny> provides a routine C<module_installed()> which works
 like Perl's C<require> but does not actually load the module.
 
 
 =head1 FUNCTIONS
 
-=head2 module_loadable($name) => bool
+=head2 module_installed($name) => bool
 
-Check that module named C<$name> is loadable, without actually loading it.
-C<$name> will be converted from C<Foo::Bar> format to C<Foo/Bar.pm>.
+Check that module named C<$name> is available to load. This means that: either
+the module file exists on the filesystem and searchable in C<@INC> and the
+contents of the file can be retrieved, or when there is a require hook in
+C<@INC>, the module's source can be retrieved from the hook.
 
-It works by following the behavior of Perl's C<require>, except the actual
-loading/executing part. First, it checks if C<$name> is already in C<%INC>,
-returning true immediately if that is the case. Then it will iterate each entry
-in C<@INC>. If the entry is a coderef or object or arrayref,
-C<module_loadable()> will treat it like a hook and call it like Perl's
-C<require()> does as described in L<perlfunc>. Otherwise, the entry will be
-treated like a directory name and the module's file will be searched on the
-filesystem.
+Note that this does not guarantee that the module can eventually be loaded
+successfully, as there might be syntax or runtime errors in the module's source.
+To check for that, one would need to actually load the module using C<require>.
 
 =head2 module_source($name) => str
 
@@ -170,15 +171,13 @@ Return module's source code, without actually loading it. Die on failure.
 
 =head1 SEE ALSO
 
-L<Module::Path> and L<Module::Path::More>. These modules can also be used to
-check if a module on the filesystem is available. It iterates directories in
-C<@INC> to try to find the module's file, but will not work with fatpacked (see
-L<App::FatPacker> or L<Module::FatPack>) or datapacked (see L<Module::DataPack>)
-scripts or generally when there is a hook in C<@INC>. C<Module::Loadable::Tiny>,
-on the other hand, handles require hook like Perl's C<require()>.
+L<Module::Load::Conditional> provides C<check_install> which also does what
+C<module_installed> does, plus can check module version. It also has a couple
+other knobs to customize its behavior. It's less tiny than
+Module::Installed::Tiny though.
 
-Also, those two modules at the time of this writing currently does not actually
-read the module file. In the case of, say, permission problem, those two will
-still return the path but the module might not actually readable.
+L<Module::Path> and L<Module::Path::More>. These modules can also be used to
+check if a module on the filesystem is available. They do not handle require
+hooks, nor do they actually check that the module file is readable.
 
 =cut
