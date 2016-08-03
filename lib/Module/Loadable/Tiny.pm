@@ -1,4 +1,4 @@
-package Module::Loadable;
+package Module::Loadable::Tiny;
 
 # DATE
 # VERSION
@@ -118,7 +118,7 @@ sub module_loadable {
 
 =head1 SYNOPSIS
 
- use Module::Loadable qw(module_loadable module_source);
+ use Module::Loadable::Tiny qw(module_loadable module_source);
 
  # check if a module is available
  if (module_loadable "Foo::Bar") {
@@ -143,8 +143,8 @@ try to C<require()> it:
 However, this actually loads the module. If a large number of modules need to be
 checked, this can potentially consume a lot of CPU time and memory.
 
-C<Module::Loadable> provides a routine C<module_loadable()> which works like
-Perl's C<require> but does not actually load the module.
+C<Module::Loadable::Tiny> provides a routine C<module_loadable()> which works
+like Perl's C<require> but does not actually load the module.
 
 
 =head1 FUNCTIONS
@@ -174,8 +174,8 @@ L<Module::Path> and L<Module::Path::More>. These modules can also be used to
 check if a module on the filesystem is available. It iterates directories in
 C<@INC> to try to find the module's file, but will not work with fatpacked (see
 L<App::FatPacker> or L<Module::FatPack>) or datapacked (see L<Module::DataPack>)
-scripts or generally when there is a hook in C<@INC>. C<Module::Loadable>, on
-the other hand, handles require hook like Perl's C<require()>.
+scripts or generally when there is a hook in C<@INC>. C<Module::Loadable::Tiny>,
+on the other hand, handles require hook like Perl's C<require()>.
 
 Also, those two modules at the time of this writing currently does not actually
 read the module file. In the case of, say, permission problem, those two will

@@ -5,7 +5,7 @@
 use strict;
 use warnings;
 
-use Module::Loadable qw(module_source module_loadable);
+use Module::Loadable::Tiny qw(module_source module_loadable);
 use Test::More 0.98;
 use Test::Needs 'lib::disallow';
 

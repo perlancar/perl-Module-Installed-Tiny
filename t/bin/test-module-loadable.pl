@@ -1,6 +1,6 @@
 #!perl
 
-use Module::Loadable qw(module_loadable);
+use Module::Loadable::Tiny qw(module_loadable);
 require Local::Foo;
 
 print module_loadable("Local::Foo") ? "l1":"L1";
