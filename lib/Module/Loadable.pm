@@ -6,8 +6,6 @@ package Module::Loadable;
 use strict;
 use warnings;
 
-use Scalar::Util qw(blessed);
-
 use Exporter qw(import);
 our @EXPORT_OK = qw(module_loadable module_source);
 
@@ -32,7 +30,7 @@ sub _module_source {
         if ($ref eq 'ARRAY') {
             $is_hook++;
             @hook_res = $entry->[0]->($entry, $name_pm);
-        } elsif (blessed $entry) {
+        } elsif (UNIVERSAL::can($entry, 'INC')) {
             $is_hook++;
             @hook_res = $entry->INC($name_pm);
         } elsif ($ref eq 'CODE') {
