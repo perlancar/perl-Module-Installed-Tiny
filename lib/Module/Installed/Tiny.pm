@@ -150,6 +150,8 @@ security or other reasons.
 C<Module::Installed::Tiny> provides a routine C<module_installed()> which works
 like Perl's C<require> but does not actually load the module.
 
+This module does not require any other module except L<Exporter>.
+
 
 =head1 FUNCTIONS
 
