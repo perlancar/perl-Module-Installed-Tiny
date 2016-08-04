@@ -8,19 +8,22 @@ use warnings;
 use FindBin '$Bin';
 use lib "$Bin/lib";
 
+use Test::More 0.98;
+BEGIN {
+    plan skip_all => "this test is only for author"
+        unless $ENV{AUTHOR_TESTING};
+}
+
 use File::Temp qw(tempfile);
 use IPC::System::Options qw(readpipe);
 use Module::Load::Conditional;
-use Test::More 0.98;
 use Test::Needs 'App::depak';
-
-plan skip_all => "this test is only for author"
-    unless $ENV{AUTHOR_TESTING};
 
 my ($tempfh, $tempname) = tempfile();
 
 subtest normal => sub {
-    my $output = readpipe($^X, "-I", "$Bin/lib", "$Bin/bin/test-module-load-conditional.pl");
+    my $output = readpipe(
+        $^X, "-I", "$Bin/lib", "$Bin/bin/test-module-load-conditional.pl");
     like($output, qr/^loadable1.*^loadable2.*^UNLOADABLE3/ms)
         or diag explain $output;
 };
