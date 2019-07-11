@@ -1,4 +1,4 @@
-0.003   2016-08-04 (PERLANCAR)
+0.003   2016-08-04  Released-By: PERLANCAR
 
 	- No functional changes.
 
@@ -6,12 +6,12 @@
 	  loading optional prereq IPC::System::Options [RT#116686].
 
 
-0.002   2016-08-03 (PERLANCAR)
+0.002   2016-08-03  Released-By: PERLANCAR
 
         - Rename dist from Module-Loadable to Module-Installed-Tiny to
           differentiate with existing solutions.
 
 
-0.001   2016-08-02 (PERLANCAR)
+0.001   2016-08-02  Released-By: PERLANCAR
 
         - First release.
