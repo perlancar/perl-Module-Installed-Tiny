@@ -48,10 +48,10 @@ sub _module_source {
 
         if ($is_hook) {
             next unless @hook_res;
-            my $prepend_ref = shift @hook_res if ref($hook_res[0]) eq 'SCALAR';
-            my $fh          = shift @hook_res if ref($hook_res[0]) eq 'GLOB';
-            my $code        = shift @hook_res if ref($hook_res[0]) eq 'CODE';
-            my $code_state  = shift @hook_res if @hook_res;
+            my $prepend_ref; $prepend_ref = shift @hook_res if ref($hook_res[0]) eq 'SCALAR';
+            my $fh         ; $fh          = shift @hook_res if ref($hook_res[0]) eq 'GLOB';
+            my $code       ; $code        = shift @hook_res if ref($hook_res[0]) eq 'CODE';
+            my $code_state ; $code_state  = shift @hook_res if @hook_res;
             if ($fh) {
                 my $src = "";
                 local $_;

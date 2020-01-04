@@ -1,3 +1,9 @@
+0.004   2020-01-04  Released-By: PERLANCAR; Urgency: medium
+
+	- In list context, module_source() now returns (module_source,
+	  path/entry).
+
+
 0.003   2016-08-04  Released-By: PERLANCAR
 
 	- No functional changes.
