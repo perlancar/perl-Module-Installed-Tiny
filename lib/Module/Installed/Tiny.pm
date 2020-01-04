@@ -42,7 +42,7 @@ sub _module_source {
                 open my($fh), "<", $path
                     or die "Can't locate $name_pm: $path: $!";
                 local $/;
-                return scalar <$fh>;
+                return wantarray ? (scalar <$fh>, $path) : scalar <$fh>;
             }
         }
 
@@ -63,7 +63,7 @@ sub _module_source {
                     $src .= $_;
                 }
                 $src = $$prepend_ref . $src if $prepend_ref;
-                return $src;
+                return wantarray ? ($src, $entry) : $src;
             } elsif ($code) {
                 my $src = "";
                 local $_;
@@ -71,7 +71,7 @@ sub _module_source {
                     $src .= $_;
                 }
                 $src = $$prepend_ref . $src if $prepend_ref;
-                return $src;
+                return wantarray ? ($src, $entry) : $src;
             }
         }
     }
@@ -166,9 +166,21 @@ Note that this does not guarantee that the module can eventually be loaded
 successfully, as there might be syntax or runtime errors in the module's source.
 To check for that, one would need to actually load the module using C<require>.
 
-=head2 module_source($name) => str
+=head2 module_source($name) => str | (str, source_name)
 
-Return module's source code, without actually loading it. Die on failure.
+Return module's source code, without actually loading it. Die on failure (e.g.
+module named C<$name> not found in C<@INC>).
+
+In list context:
+
+ my @res = module_source($name);
+
+will return the list:
+
+(str, source_name)
+
+where C<str> is the module source code and C<source_name> is source information
+(file path, or the @INC ref entry when entry is a ref).
 
 
 =head1 SEE ALSO
