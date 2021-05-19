@@ -1,6 +1,8 @@
 package Module::Installed::Tiny;
 
+# AUTHORITY
 # DATE
+# DIST
 # VERSION
 
 use strict;
@@ -181,6 +183,19 @@ will return the list:
 
 where C<str> is the module source code and C<source_name> is source information
 (file path, or the @INC ref entry when entry is a ref).
+
+
+=head1 FAQ
+
+=head2 How to get module source without dying? I want to just get undef if module source is not available.
+
+Wrap in C<eval()> or C<try/catch> (Perl 5.34+):
+
+ my $src;
+ eval { $src = module_source $name };
+ # $src contains the module source or undef if not available
+
+This is what C<module_installed()> does.
 
 
 =head1 SEE ALSO
