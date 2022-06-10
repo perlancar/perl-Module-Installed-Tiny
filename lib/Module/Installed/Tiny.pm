@@ -1,14 +1,15 @@
 package Module::Installed::Tiny;
 
+use strict;
+use warnings;
+
+use Exporter qw(import);
+
 # AUTHORITY
 # DATE
 # DIST
 # VERSION
 
-use strict;
-use warnings;
-
-use Exporter qw(import);
 our @EXPORT_OK = qw(module_installed module_source);
 
 our $SEPARATOR;
@@ -23,7 +24,12 @@ BEGIN {
 }
 
 sub _module_source {
-    my $name_pm = shift;
+    my ($name_pm, $opts) = @_;
+
+    $opts //= {};
+    $opts->{die} = 1 unless defined $opts->{die};
+
+    my $name_prefix;
 
     for my $entry (@INC) {
         next unless defined $entry;
@@ -45,6 +51,11 @@ sub _module_source {
                     or die "Can't locate $name_pm: $path: $!";
                 local $/;
                 return wantarray ? (scalar <$fh>, $path) : scalar <$fh>;
+            } elsif ($opts->{find_prefix}) {
+                $path =~ s/\.pm\z//;
+                if (-d $path) {
+                    return wantarray ? (undef, $path) : \$path;
+                }
             }
         }
 
@@ -78,11 +89,15 @@ sub _module_source {
         }
     }
 
-    die "Can't locate $name_pm in \@INC (\@INC contains: ".join(" ", @INC).")";
+    if ($opts->{die}) {
+        die "Can't locate $name_pm in \@INC (\@INC contains: ".join(" ", @INC).")";
+    } else {
+        return;
+    }
 }
 
 sub module_source {
-    my $name = shift;
+    my ($name, $opts) = @_;
 
     # convert Foo::Bar -> Foo/Bar.pm
     my $name_pm;
@@ -92,11 +107,13 @@ sub module_source {
         $name_pm = $name;
     }
 
-    _module_source $name_pm;
+    _module_source($name_pm, $opts);
 }
 
 sub module_installed {
-    my $name = shift;
+    my ($name, $opts) = @_;
+
+    local $opts->{die} = 1;
 
     # convert Foo::Bar -> Foo/Bar.pm
     my $name_pm;
@@ -108,7 +125,7 @@ sub module_installed {
 
     return 1 if exists $INC{$name_pm};
 
-    if (eval { _module_source $name_pm; 1 }) {
+    if (eval { _module_source($name_pm, $opts); 1 }) {
         1;
     } else {
         0;
@@ -157,7 +174,11 @@ This module does not require any other module except L<Exporter>.
 
 =head1 FUNCTIONS
 
-=head2 module_installed($name) => bool
+=head2 module_installed
+
+Usage:
+
+ module_installed($name [ , \%opts ]) => bool
 
 Check that module named C<$name> is available to load. This means that: either
 the module file exists on the filesystem and searchable in C<@INC> and the
@@ -168,7 +189,19 @@ Note that this does not guarantee that the module can eventually be loaded
 successfully, as there might be syntax or runtime errors in the module's source.
 To check for that, one would need to actually load the module using C<require>.
 
-=head2 module_source($name) => str | (str, source_name)
+Options:
+
+=over
+
+=item *
+
+=back
+
+=head2 module_source
+
+Usage:
+
+ module_source($name [ , \%opts ]) => str | (str, source_name)
 
 Return module's source code, without actually loading it. Die on failure (e.g.
 module named C<$name> not found in C<@INC>).
@@ -179,10 +212,35 @@ In list context:
 
 will return the list:
 
-(str, source_name)
+ (str, source_name)
 
 where C<str> is the module source code and C<source_name> is source information
 (file path, or the @INC ref entry when entry is a ref).
+
+Options:
+
+=over
+
+=item * die
+
+Bool. Default true. If set to false, won't die upon failure but instead will
+return undef (or empty list in list context).
+
+=item * find_prefix
+
+Bool. If set to true, when a module (e.g. C<Foo/Bar.pm>) is not found in the
+fileysstem but its directory is (C<Foo/Bar/>), then instead of dying or
+returning undef/empty list, the function will return:
+
+ \$path
+
+in scalar context, or:
+
+ (undef, \$path)
+
+in list context.
+
+=back
 
 
 =head1 FAQ

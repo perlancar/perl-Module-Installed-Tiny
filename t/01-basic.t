@@ -2,9 +2,9 @@
 
 use strict;
 use warnings;
+use Test::More 0.98;
 
 use Module::Installed::Tiny qw(module_source module_installed);
-use Test::More 0.98;
 
 subtest module_installed => sub {
     ok( module_installed("Test::More"), "already loaded -> true");
@@ -22,6 +22,25 @@ subtest module_source => sub {
     like($source, qr/package if/);
     diag "path=$path";
     ok($path);
+
+    # XXX option: die
+
+    # option: find_prefix. this is assuming Module.pm does not exist
+    subtest "opt: find_prefix" => sub {
+        ($source, $path) = module_source("Module", {die=>0});
+        is_deeply($source, undef);
+        is_deeply($path, undef);
+
+        ($source, $path) = module_source("Module", {die=>0, find_prefix=>1});
+        is_deeply($source, undef);
+        diag "path=$path";
+        ok($path);
+
+        $path = module_source("Module", {die=>0, find_prefix=>1});
+        is(ref $path, 'SCALAR');
+        diag "path=\\ ".$$path;
+    };
+
 };
 
 done_testing;
