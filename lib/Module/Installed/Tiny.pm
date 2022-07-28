@@ -23,113 +23,127 @@ BEGIN {
     }
 }
 
-sub _module_source {
-    my ($name_pm, $opts) = @_;
+sub _parse_name {
+    my $name = shift;
+
+    my ($name_mod, $name_pm, $name_path);
+    # name_mod is Foo::Bar form, name_pm is Foo/Bar.pm form, name_path is
+    # Foo/Bar.pm or Foo\Bar.pm (uses native path separator), name_path_prefix is
+    # Foo/Bar.
+
+    if ($name =~ m!/|\.pm\z!) {
+        # assume it's name_pm form
+        $name_pm = $name;
+        $name_mod = $name;    $name_mod =~ s/\.pm\z//; $name_mod =~ s!/!::!g;
+        $name_path = $name_pm; $name_path =~ s!/!$SEPARATOR!g if $SEPARATOR ne '/';
+    } elsif ($SEPARATOR ne '/' && $name =~ m!\Q$SEPARATOR!) {
+        # assume it's name_path form
+        $name_path = $name;
+        ($name_pm = $name_path) =~ s!\Q$SEPARATOR!/!g;
+        $name_mod = $name_pm; $name_mod =~ s/\.pm\z//; $name_mod =~ s!/!::!g;
+    } else {
+        # assume it's name_mod form
+        $name_mod = $name;
+        ($name_pm  = "$name_mod.pm") =~ s!::!/!g;
+        $name_path = $name_pm; $name_path =~ s!/!$SEPARATOR!g if $SEPARATOR ne '/';
+    }
+
+    ($name_mod, $name_pm, $name_path);
+}
+
+sub module_source {
+    my ($name, $opts) = @_;
 
     $opts //= {};
     $opts->{die} = 1 unless defined $opts->{die};
 
-    my $name_prefix;
+    my ($name_mod, $name_pm, $name_path) = _parse_name($name);
 
+    my $index = -1;
     for my $entry (@INC) {
+        $index++;
         next unless defined $entry;
         my $ref = ref($entry);
         my ($is_hook, @hook_res);
         if ($ref eq 'ARRAY') {
             $is_hook++;
-            @hook_res = $entry->[0]->($entry, $name_pm);
+            eval { @hook_res = $entry->[0]->($entry, $name_pm) };
+            if ($@) { if ($opts->{die}) { die "Can't locate $name_pm in \@INC (you may need to install the $name_mod module): $entry: $@ (\@INC contains ".join(" ", @INC).")" } else { return } }
         } elsif (UNIVERSAL::can($entry, 'INC')) {
             $is_hook++;
-            @hook_res = $entry->INC($name_pm);
+            eval { @hook_res = $entry->INC($name_pm) };
+            if ($@) { if ($opts->{die}) { die "Can't locate $name_pm in \@INC (you may need to install the $name_mod module): $entry: $@ (\@INC contains ".join(" ", @INC).")" } else { return } }
         } elsif ($ref eq 'CODE') {
             $is_hook++;
-            @hook_res = $entry->($entry, $name_pm);
+            eval { @hook_res = $entry->($entry, $name_pm) };
+            if ($@) { if ($opts->{die}) { die "Can't locate $name_pm in \@INC (you may need to install the $name_mod module): $entry: $@ (\@INC contains ".join(" ", @INC).")" } else { return } }
         } else {
-            my $path = "$entry$SEPARATOR$name_pm";
+            my $path = "$entry$SEPARATOR$name_path";
             if (-f $path) {
-                open my($fh), "<", $path
-                    or die "Can't locate $name_pm: $path: $!"; # we need to use standard verbage "Can't locate ..." because some code checks this
+                my $fh;
+                unless (open $fh, "<", $path) {
+                    if ($opts->{die}) { die "Can't locate $name_pm in \@INC (you may need to install the $name_mod module): $entry: $path: $! (\@INC contains ".join(" ", @INC).")" } else { return }
+                }
                 local $/;
-                return wantarray ? (scalar <$fh>, $path) : scalar <$fh>;
+                return wantarray ? (scalar <$fh>, $path, $entry, $index) : scalar <$fh>;
             } elsif ($opts->{find_prefix}) {
-                $path =~ s/\.pm\z//;
+                $name_path =~ s/\.pm\z//;
                 if (-d $path) {
-                    return wantarray ? (undef, $path) : \$path;
+                    return wantarray ? (undef, $path, $entry, $index) : \$path;
                 }
             }
         }
 
         if ($is_hook) {
             next unless @hook_res;
-            my $prepend_ref; $prepend_ref = shift @hook_res if ref($hook_res[0]) eq 'SCALAR';
-            my $fh         ; $fh          = shift @hook_res if ref($hook_res[0]) eq 'GLOB';
-            my $code       ; $code        = shift @hook_res if ref($hook_res[0]) eq 'CODE';
-            my $code_state ; $code_state  = shift @hook_res if @hook_res;
-            if ($fh) {
-                my $src = "";
-                local $_;
-                while (!eof($fh)) {
-                    $_ = <$fh>;
-                    if ($code) {
-                        $code->($code, $code_state);
+            my ($src, $fh, $code);
+            eval {
+                my $prepend_ref; $prepend_ref = shift @hook_res if ref($hook_res[0]) eq 'SCALAR';
+                $fh                           = shift @hook_res if ref($hook_res[0]) eq 'GLOB';
+                $code                         = shift @hook_res if ref($hook_res[0]) eq 'CODE';
+                my $code_state ; $code_state  = shift @hook_res if @hook_res;
+                if ($fh) {
+                    my $src = "";
+                    local $_;
+                    while (!eof($fh)) {
+                        $_ = <$fh>;
+                        if ($code) {
+                            $code->($code, $code_state);
+                        }
+                        $src .= $_;
                     }
-                    $src .= $_;
+                    $src = $$prepend_ref . $src if $prepend_ref;
+                } elsif ($code) {
+                    my $src = "";
+                    local $_;
+                    while ($code->($code, $code_state)) {
+                        $src .= $_;
+                    }
+                    $src = $$prepend_ref . $src if $prepend_ref;
                 }
-                $src = $$prepend_ref . $src if $prepend_ref;
-                return wantarray ? ($src, $entry) : $src;
-            } elsif ($code) {
-                my $src = "";
-                local $_;
-                while ($code->($code, $code_state)) {
-                    $src .= $_;
-                }
-                $src = $$prepend_ref . $src if $prepend_ref;
-                return wantarray ? ($src, $entry) : $src;
-            }
-        }
+            }; # eval
+            if ($@) { if ($opts->{die}) { die "Can't locate $name_pm in \@INC (you may need to install the $name_mod module): $entry: ".($fh || $code).": $@ (\@INC contains ".join(" ", @INC).")" } else { return } }
+            return wantarray ? ($src, undef, $entry, $index) : $src;
+        } # if $is_hook
     }
 
     if ($opts->{die}) {
-        die "Can't locate $name_pm in \@INC (\@INC contains: ".join(" ", @INC).")"; # we need to use standard verbage "Can't locate ..." because some code checks this
+        die "Can't locate $name_pm in \@INC (you may need to install the $name_mod module) (\@INC contains ".join(" ", @INC).")";
     } else {
         return;
     }
 }
 
-sub module_source {
-    my ($name, $opts) = @_;
-
-    # convert Foo::Bar -> Foo/Bar.pm
-    my $name_pm;
-    if ($name =~ /\A\w+(?:::\w+)*\z/) {
-        ($name_pm = "$name.pm") =~ s!::!$SEPARATOR!g;
-    } else {
-        $name_pm = $name;
-    }
-
-    _module_source($name_pm, $opts);
-}
-
 sub module_installed {
     my ($name, $opts) = @_;
 
-    local $opts->{die} = 1;
-
     # convert Foo::Bar -> Foo/Bar.pm
-    my $name_pm;
-    if ($name =~ /\A\w+(?:::\w+)*\z/) {
-        ($name_pm = "$name.pm") =~ s!::!$SEPARATOR!g;
-    } else {
-        $name_pm = $name;
-    }
+    my ($name_mod, $name_pm, $name_path) = _parse_name($name);
 
     return 1 if exists $INC{$name_pm};
 
-    if (eval { _module_source($name_pm, $opts); 1 }) {
-        1;
-    } else {
-        0;
-    }
+    my $res = module_source($name, {%{ $opts || {}}, die=>0});
+    $res ? 1:0;
 }
 
 1;
@@ -158,6 +172,11 @@ try to C<require()> it:
  if (eval { require Foo::Bar; 1 }) {
      # Foo::Bar is available
  }
+ # or
+ my $mod_pm = "Foo/Bar.pm";
+ if (eval { require $mod_pm; 1 }) {
+     # Foo::Bar is available
+ }
 
 However, this actually loads the module. There are some cases where this is not
 desirable: 1) we have to check a lot of modules (actually loading the modules
@@ -174,48 +193,32 @@ This module does not require any other module except L<Exporter>.
 
 =head1 FUNCTIONS
 
-=head2 module_installed
-
-Usage:
-
- module_installed($name [ , \%opts ]) => bool
-
-Check that module named C<$name> is available to load. This means that: either
-the module file exists on the filesystem and searchable in C<@INC> and the
-contents of the file can be retrieved, or when there is a require hook in
-C<@INC>, the module's source can be retrieved from the hook.
-
-Note that this does not guarantee that the module can eventually be loaded
-successfully, as there might be syntax or runtime errors in the module's source.
-To check for that, one would need to actually load the module using C<require>.
-
-Options:
-
-=over
-
-=item *
-
-=back
-
 =head2 module_source
 
 Usage:
 
- module_source($name [ , \%opts ]) => str | (str, source_name)
+ module_source($name [ , \%opts ]) => str | list
 
-Return module's source code, without actually loading it. Die on failure (e.g.
-module named C<$name> not found in C<@INC>).
+Return module's source code, without actually loading/executing it. Module
+source will be searched in C<@INC> the way Perl's C<require()> finds modules.
+This include executing require hooks in C<@INC> if there are any.
+
+Die on failure (e.g. module named C<$name> not found in C<@INC> or module source
+file cannot be read) with the same/similar message as Perl's C<require()>:
+
+ Can't locate Foo/Bar.pm (you may need to install the Foo::Bar module) ...
+
+Module C<$name> can be in the form of C<Foo::Bar>, C<Foo/Bar.pm> or
+F<Foo\Bar.pm> (on Windows).
 
 In list context:
 
- my @res = module_source($name);
+ my ($src, $path, $entry, $index) = module_source($name);
 
-will return the list:
-
- (str, source_name)
-
-where C<str> is the module source code and C<source_name> is source information
-(file path, or the @INC ref entry when entry is a ref).
+where C<$src> (string) is the module source code, C<$path> (string) is
+filesystem path (C<undef> if source comes from a require hook), C<$entry> (the
+element in C<@INC> where the source comes from), C<$index> (integer, the index
+of entry in C<@INC> where the source comes from, 0 means the first entry).
 
 Options:
 
@@ -236,9 +239,45 @@ returning undef/empty list, the function will return:
 
 in scalar context, or:
 
- (undef, \$path)
+ (undef, $path)
 
-in list context.
+in list context. In scalar context, you can differentiate path from module
+source because the path is returned as a scalar reference. So to get the path:
+
+ $source_or_pathref = module_source("Foo/Bar.pm");
+ if (ref $source_or_pathref eq 'SCALAR') {
+     say "Path is ", $$source_or_pathref;
+ } else {
+     say "Module source code is $source_or_pathref";
+ }
+
+=back
+
+=head2 module_installed
+
+Usage:
+
+ module_installed($name [ , \%opts ]) => bool
+
+Check that module named C<$name> is available to load, without actually
+loading/executing the module. Module will be searched in C<@INC> the way Perl's
+C<require()> finds modules. This include executing require hooks in C<@INC> if
+there are any.
+
+Note that this does not guarantee that the module can eventually be loaded
+successfully, as there might be syntax or runtime errors in the module's source.
+To check for that, one would need to actually load the module using C<require>.
+
+Module C<$name> can be in the form of C<Foo::Bar>, C<Foo/Bar.pm> or
+F<Foo\Bar.pm> (on Windows).
+
+Options:
+
+=over
+
+=item * find_prefix
+
+See L</module_source> documentation.
 
 =back
 
@@ -247,13 +286,16 @@ in list context.
 
 =head2 How to get module source without dying? I want to just get undef if module source is not available.
 
-Wrap in C<eval()> or C<try/catch> (Perl 5.34+):
+Set the C<die> option to false:
 
- my $src;
- eval { $src = module_source $name };
- # $src contains the module source or undef if not available
+ my $src = module_source($name, {die=>0});
 
 This is what C<module_installed()> does.
+
+=head2 How to know which @INC entry the source comes from?
+
+Call the L</module_source> in list context, where you will get more information
+including the entry. See the function documentation for more details.
 
 
 =head1 SEE ALSO
