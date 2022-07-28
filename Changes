@@ -1,3 +1,29 @@
+0.007   2022-07-28  Released-By: PERLANCAR; Urgency: medium
+
+        [Enhancemnents]
+
+        - Make error message more similar to require()'s but still adds more
+          information about the entry and nature of error. ("Can't locate
+          Foo/Bar.pm (you may need to install the Foo::Bar module): EXTRA INFO
+          (@INC contains ...)").
+
+        - Add more information if called in the list context: entry as well as
+          entry index. The full return in list context is now: ($src, $path,
+          $entry, $index).
+
+        [Bug Fixes]
+
+        - Consistently try not to die when passed die=>0 option, by enclosing
+          calls to hook with eval { }.
+
+        - In the error message, consistently show Foo::Bar as Foo/Bar.pm and do
+          not use native path separator.
+
+        [Documentation]
+
+        - Tweak/fix documentation.
+
+
 0.006   2022-06-10  Released-By: PERLANCAR; Urgency: medium
 
         - Introduce options: die, find_prefix.
