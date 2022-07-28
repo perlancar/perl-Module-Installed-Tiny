@@ -244,7 +244,7 @@ in scalar context, or:
 in list context. In scalar context, you can differentiate path from module
 source because the path is returned as a scalar reference. So to get the path:
 
- $source_or_pathref = module_source("Foo/Bar.pm");
+ $source_or_pathref = module_source("Foo/Bar.pm", {find_prefix=>1});
  if (ref $source_or_pathref eq 'SCALAR') {
      say "Path is ", $$source_or_pathref;
  } else {
