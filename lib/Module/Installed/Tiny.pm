@@ -209,7 +209,7 @@ file cannot be read) with the same/similar message as Perl's C<require()>:
  Can't locate Foo/Bar.pm (you may need to install the Foo::Bar module) ...
 
 Module C<$name> can be in the form of C<Foo::Bar>, C<Foo/Bar.pm> or
-F<Foo\Bar.pm> (on Windows).
+C<Foo\Bar.pm> (on Windows).
 
 In list context:
 
