@@ -48,7 +48,7 @@ sub _module_source {
             my $path = "$entry$SEPARATOR$name_pm";
             if (-f $path) {
                 open my($fh), "<", $path
-                    or die "Can't locate $name_pm: $path: $!";
+                    or die "Can't locate $name_pm: $path: $!"; # we need to use standard verbage "Can't locate ..." because some code checks this
                 local $/;
                 return wantarray ? (scalar <$fh>, $path) : scalar <$fh>;
             } elsif ($opts->{find_prefix}) {
@@ -90,7 +90,7 @@ sub _module_source {
     }
 
     if ($opts->{die}) {
-        die "Can't locate $name_pm in \@INC (\@INC contains: ".join(" ", @INC).")";
+        die "Can't locate $name_pm in \@INC (\@INC contains: ".join(" ", @INC).")"; # we need to use standard verbage "Can't locate ..." because some code checks this
     } else {
         return;
     }
