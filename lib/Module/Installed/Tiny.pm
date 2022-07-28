@@ -239,7 +239,7 @@ returning undef/empty list, the function will return:
 
 in scalar context, or:
 
- (undef, $path)
+ (undef, $path, $entry, $index)
 
 in list context. In scalar context, you can differentiate path from module
 source because the path is returned as a scalar reference. So to get the path:
