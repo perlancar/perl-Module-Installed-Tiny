@@ -103,7 +103,7 @@ sub module_source {
                 $code                         = shift @hook_res if ref($hook_res[0]) eq 'CODE';
                 my $code_state ; $code_state  = shift @hook_res if @hook_res;
                 if ($fh) {
-                    my $src = "";
+                    $src = "";
                     local $_;
                     while (!eof($fh)) {
                         $_ = <$fh>;
@@ -114,7 +114,7 @@ sub module_source {
                     }
                     $src = $$prepend_ref . $src if $prepend_ref;
                 } elsif ($code) {
-                    my $src = "";
+                    $src = "";
                     local $_;
                     while ($code->($code, $code_state)) {
                         $src .= $_;
@@ -143,7 +143,7 @@ sub module_installed {
     return 1 if exists $INC{$name_pm};
 
     my $res = module_source($name, {%{ $opts || {}}, die=>0});
-    $res ? 1:0;
+    defined($res) ? 1:0;
 }
 
 1;
