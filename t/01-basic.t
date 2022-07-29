@@ -52,12 +52,12 @@ subtest module_source => sub {
 
         ($source, $path) = module_source("Module", {die=>0, find_prefix=>1});
         is_deeply($source, undef);
-        diag "path=$path";
+        note "path=$path";
         ok($path);
 
         $path = module_source("Module", {die=>0, find_prefix=>1});
         is(ref $path, 'SCALAR');
-        diag "path=\\ ".$$path;
+        note "path=\\ ".$$path;
     };
 
 };
