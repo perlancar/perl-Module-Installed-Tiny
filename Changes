@@ -1,3 +1,9 @@
+0.009   2022-07-29  Released-By: PERLANCAR; Urgency: medium
+
+        - Return more information in list context: name_mod, name_pm,
+          name_path.
+
+
 0.008   2022-07-28  Released-By: PERLANCAR; Urgency: low
 
         - No functional changes.
