@@ -85,11 +85,11 @@ sub module_source {
                     if ($opts->{die}) { die "Can't locate $name_pm in \@INC (you may need to install the $name_mod module): $entry: $path: $! (\@INC contains ".join(" ", @INC).")" } else { return }
                 }
                 local $/;
-                return wantarray ? (scalar <$fh>, $path, $entry, $index) : scalar <$fh>;
+                return wantarray ? (scalar <$fh>, $path, $entry, $index, $name_mod, $name_pm, $name_path) : scalar <$fh>;
             } elsif ($opts->{find_prefix}) {
                 $name_path =~ s/\.pm\z//;
                 if (-d $path) {
-                    return wantarray ? (undef, $path, $entry, $index) : \$path;
+                    return wantarray ? (undef, $path, $entry, $index, $name_mod, $name_pm, $name_path) : \$path;
                 }
             }
         }
@@ -123,7 +123,7 @@ sub module_source {
                 }
             }; # eval
             if ($@) { if ($opts->{die}) { die "Can't locate $name_pm in \@INC (you may need to install the $name_mod module): $entry: ".($fh || $code).": $@ (\@INC contains ".join(" ", @INC).")" } else { return } }
-            return wantarray ? ($src, undef, $entry, $index) : $src;
+            return wantarray ? ($src, undef, $entry, $index, $name_mod, $name_pm, $name_path) : $src;
         } # if $is_hook
     }
 
@@ -213,12 +213,44 @@ C<Foo\Bar.pm> (on Windows).
 
 In list context:
 
- my ($src, $path, $entry, $index) = module_source($name);
+ #   [0]   [1]    [2]     [3]     [4]        [5]       [6]
+ my ($src, $path, $entry, $index, $name_mod, $name_pm, $name_path) = module_source($name);
 
-where C<$src> (string) is the module source code, C<$path> (string) is
-filesystem path (C<undef> if source comes from a require hook), C<$entry> (the
-element in C<@INC> where the source comes from), C<$index> (integer, the index
-of entry in C<@INC> where the source comes from, 0 means the first entry).
+where:
+
+=over
+
+=item * $src
+
+String. The module source code.
+
+=item * $path
+
+String. The filesystem path (C<undef> if source comes from a require hook).
+
+=item * $entry
+
+The element in C<@INC> where the source comes from.
+
+=item * $index
+
+Integer, the index of entry in C<@INC> where the source comes from, 0 means the
+first entry.
+
+=item * $name_mod
+
+Module name normalized to C<Foo::Bar> form.
+
+=item * $name_pm
+
+Module name normalized to C<Foo/Bar.pm> form.
+
+=item * $name_path
+
+Module name normalized to C<Foo/Bar.pm> form or C<Foo\Bar.pm> form depending on
+the native path separator character.
+
+=back
 
 Options:
 
