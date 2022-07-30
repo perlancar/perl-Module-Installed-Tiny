@@ -60,6 +60,8 @@ sub module_source {
     my ($name_mod, $name_pm, $name_path) = _parse_name($name);
 
     my $index = -1;
+    my @res;
+  ENTRY:
     for my $entry (@INC) {
         $index++;
         next unless defined $entry;
@@ -85,11 +87,13 @@ sub module_source {
                     if ($opts->{die}) { die "Can't locate $name_pm in \@INC (you may need to install the $name_mod module): $entry: $path: $! (\@INC contains ".join(" ", @INC).")" } else { return }
                 }
                 local $/;
-                return wantarray ? (scalar <$fh>, $path, $entry, $index, $name_mod, $name_pm, $name_path) : scalar <$fh>;
+                my $res = wantarray ? [scalar <$fh>, $path, $entry, $index, $name_mod, $name_pm, $name_path] : scalar <$fh>;
+                if ($opts->{all}) { push @res, $res } else { return wantarray ? @$res : $res }
             } elsif ($opts->{find_prefix}) {
                 $name_path =~ s/\.pm\z//;
                 if (-d $path) {
-                    return wantarray ? (undef, $path, $entry, $index, $name_mod, $name_pm, $name_path) : \$path;
+                    my $res = wantarray ? [undef, $path, $entry, $index, $name_mod, $name_pm, $name_path] : \$path;
+                    if ($opts->{all}) { push @res, $res } else { return wantarray ? @$res : $res }
                 }
             }
         }
@@ -123,14 +127,19 @@ sub module_source {
                 }
             }; # eval
             if ($@) { if ($opts->{die}) { die "Can't locate $name_pm in \@INC (you may need to install the $name_mod module): $entry: ".($fh || $code).": $@ (\@INC contains ".join(" ", @INC).")" } else { return } }
-            return wantarray ? ($src, undef, $entry, $index, $name_mod, $name_pm, $name_path) : $src;
+            my $res = wantarray ? [$src, undef, $entry, $index, $name_mod, $name_pm, $name_path] : $src;
+            if ($opts->{all}) { push @res, $res } else { return wantarray ? @$res : $res }
         } # if $is_hook
     }
 
-    if ($opts->{die}) {
-        die "Can't locate $name_pm in \@INC (you may need to install the $name_mod module) (\@INC contains ".join(" ", @INC).")";
+    if (@res) {
+        return wantarray ? @res : \@res;
     } else {
-        return;
+        if ($opts->{die}) {
+            die "Can't locate $name_pm in \@INC (you may need to install the $name_mod module) (\@INC contains ".join(" ", @INC).")";
+        } else {
+            return;
+        }
     }
 }
 
@@ -211,7 +220,7 @@ file cannot be read) with the same/similar message as Perl's C<require()>:
 Module C<$name> can be in the form of C<Foo::Bar>, C<Foo/Bar.pm> or
 C<Foo\Bar.pm> (on Windows).
 
-In list context:
+In list context, will return a record of information:
 
  #   [0]   [1]    [2]     [3]     [4]        [5]       [6]
  my ($src, $path, $entry, $index, $name_mod, $name_pm, $name_path) = module_source($name);
@@ -271,7 +280,7 @@ returning undef/empty list, the function will return:
 
 in scalar context, or:
 
- (undef, $path, $entry, $index)
+ (undef, $path, $entry, $index, $name_mod, $name_pm, $name_path)
 
 in list context. In scalar context, you can differentiate path from module
 source because the path is returned as a scalar reference. So to get the path:
@@ -281,6 +290,22 @@ source because the path is returned as a scalar reference. So to get the path:
      say "Path is ", $$source_or_pathref;
  } else {
      say "Module source code is $source_or_pathref";
+ }
+
+=item * all
+
+Bool. If set to true, then instead of stopping after one source is found, the
+function will continue finding sources until all entries in C<@INC> is
+exhausted. Then will return all the found sources as an arrayref:
+
+ my $sources = module_source($name, {all=>1});
+
+In list context, will return a list of records instead of a single record:
+
+ my @records = module_source($name, {all=>1});
+ for my $record (@records) {
+     my ($src, $path, $entry, $index, $name_mod, $name_pm, $name_path) = @$record;
+     ...
  }
 
 =back
