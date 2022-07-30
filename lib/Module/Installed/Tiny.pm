@@ -351,8 +351,9 @@ This is what C<module_installed()> does.
 
 =head2 How to know which @INC entry the source comes from?
 
-Call the L</module_source> in list context, where you will get more information
-including the entry. See the function documentation for more details.
+Call the L</module_source> function in list context, where you will get more
+information including the entry. See the function documentation for more
+details.
 
 
 =head1 SEE ALSO
